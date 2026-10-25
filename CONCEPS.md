@@ -1,0 +1,5 @@
+# What happens when I type a URL and press Enter
+
+When you type a URL and press Enter, your browser parses the address and performs a DNS lookup to find the server's numeric IP address. It then establishes a secure connection with that server using a TCP and TLS handshake to ensure safe communication. Once connected, the browser sends an HTTP request for the page content, and the server replies by sending back the raw data (HTML, CSS, and JavaScript). Finally, the browser parses this data, builds the layout, and renders the visual webpage on your screen.
+
+
