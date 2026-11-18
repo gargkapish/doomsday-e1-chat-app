@@ -9,6 +9,7 @@ const conversationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+
 conversationSchema.index({ members: 1 });
 
 export default mongoose.model("Conversation", conversationSchema);

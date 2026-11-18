@@ -32,6 +32,9 @@ const messageSchema = z.object({
 });
 
 
+const historySchema = z.object({
+  before: z.string().refine(mongoose.isValidObjectId, "Invalid before id").optional(),
+});
 
 router.post("/", async (req, res) => {
   const result = directSchema.safeParse(req.body);
@@ -114,6 +117,31 @@ router.post("/:id/messages", async (req, res) => {
   await Conversation.updateOne({ _id: id }, { updatedAt: new Date() });
 
   res.status(201).json(message);
+});
+
+router.get("/:id/messages", async (req, res) => {
+  const result = historySchema.safeParse(req.query);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.issues[0].message });
+  }
+
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(404).json({ error: "Conversation not found" });
+  }
+
+  const isMember = await Conversation.exists({ _id: id, members: req.userId });
+  if (!isMember) {
+    return res.status(404).json({ error: "Conversation not found" });
+  }
+
+  const filter = { conversation: id };
+  if (result.data.before) {
+    filter._id = { $lt: result.data.before };
+  }
+
+  const messages = await Message.find(filter).sort({ _id: -1 }).limit(50);
+  res.json(messages.reverse());
 });
 
 

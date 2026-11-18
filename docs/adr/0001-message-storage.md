@@ -35,7 +35,9 @@ We store messages in a **separate `messages` collection**. Each message stores:
 - `sender`: the `_id` of the user who sent it
 - `text`, plus `createdAt` and `updatedAt`, which Mongoose adds automatically
 
-We add a **compound index** on `{ conversation: 1, createdAt: 1 }`. With it, "get the messages of conversation X in time order" jumps straight to the right messages instead of scanning every message in the database.
+We add a **compound index** on `{ conversation: 1, _id: 1 }`. With it, "get the messages of conversation X in time order" jumps straight to the right messages instead of scanning every message in the database.
+
+We sort and paginate by `_id`, not `createdAt`. An ObjectId starts with a timestamp, so it is in time order, and it is unique. `createdAt` is not unique: two messages saved in the same millisecond share it, and a page that ends between them would skip messages. Pages use a cursor (`?before=<oldest message id>`), not `skip`, so new messages don't shift the pages and MongoDB doesn't walk past old ones.
 
 We rejected **embedding**, because:
 - **Size limit:** one MongoDB document can be at most 16 MB. A busy chat would hit this limit, and then new messages could not be saved.
