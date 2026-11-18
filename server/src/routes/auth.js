@@ -18,6 +18,11 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+};
 
 
 const router = Router();
@@ -58,11 +63,10 @@ router.post("/login", async (req, res) => {
   const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
   res.cookie("token", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000
   });
+
   res.json({ id: user._id, name: user.name, email: user.email });
 });
 
@@ -76,6 +80,10 @@ router.get("/me", requireAuth, async (req, res) => {
 });
 
 
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", cookieOptions);
+  res.json({ message: "Logged out" });
+});
 
 
 export default router;
