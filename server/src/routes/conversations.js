@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import Conversation from "../models/conversation.js";
 import User from "../models/user.js";
 import { requireAuth } from "../middleware/auth.js";
+import Message from "../models/message.js";
+
 
 const router = Router();
 router.use(requireAuth);
@@ -19,6 +21,14 @@ const groupSchema = z.object({
     .array(z.string().refine(mongoose.isValidObjectId, "Invalid member id"), { error: "memberIds must be a list" })
     .min(2, "Pick at least 2 other people")
     .max(49, "A group can have at most 50 people"),
+});
+
+const messageSchema = z.object({
+  text: z
+    .string({ error: "Message text is required" })
+    .trim()
+    .min(1, "Message cannot be empty")
+    .max(2000, "Message is too long (max 2000 characters)"),
 });
 
 
@@ -77,5 +87,34 @@ router.get("/", async (req, res) => {
     .sort({ updatedAt: -1 });
   res.json(conversations);
 });
+
+
+router.post("/:id/messages", async (req, res) => {
+  const result = messageSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.issues[0].message });
+  }
+
+  const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(404).json({ error: "Conversation not found" });
+  }
+
+  const isMember = await Conversation.exists({ _id: id, members: req.userId });
+  if (!isMember) {
+    return res.status(404).json({ error: "Conversation not found" });
+  }
+
+  const message = await Message.create({
+    conversation: id,
+    sender: req.userId,
+    text: result.data.text,
+  });
+
+  await Conversation.updateOne({ _id: id }, { updatedAt: new Date() });
+
+  res.status(201).json(message);
+});
+
 
 export default router;
