@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import User from "../models/user.js";
 import jwt from "jsonwebtoken";
+import { requireAuth } from "../middleware/auth.js";
 
 
 
@@ -64,6 +65,16 @@ router.post("/login", async (req, res) => {
   });
   res.json({ id: user._id, name: user.name, email: user.email });
 });
+
+
+router.get("/me", requireAuth, async (req, res) => {
+  const user = await User.findById(req.userId).select("-passwordHash");
+  if (!user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  res.json(user);
+});
+
 
 
 
