@@ -103,8 +103,8 @@ router.post("/:id/messages", async (req, res) => {
     return res.status(404).json({ error: "Conversation not found" });
   }
 
-  const isMember = await Conversation.exists({ _id: id, members: req.userId });
-  if (!isMember) {
+  const conversation = await Conversation.findOne({ _id: id, members: req.userId }).select("members");
+  if (!conversation) {
     return res.status(404).json({ error: "Conversation not found" });
   }
 
@@ -115,7 +115,8 @@ router.post("/:id/messages", async (req, res) => {
   });
 
   await Conversation.updateOne({ _id: id }, { updatedAt: new Date() });
-
+  const io = req.app.get("io");
+  io.to(conversation.members.map(String)).emit("new_message", message);
   res.status(201).json(message);
 });
 

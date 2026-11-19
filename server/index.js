@@ -20,6 +20,7 @@ app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 const server = createServer(app);
 const io = new Server(server);
+app.set("io", io);
 
 io.engine.use(cookieParser());
 
@@ -39,6 +40,7 @@ io.use((socket, next) => {
 
 
 io.on("connection", (socket) => {
+  socket.join(socket.userId);
   console.log("socket connected", socket.userId, socket.id);
   socket.on("disconnect", () => console.log("socket disconnected", socket.userId, socket.id));
 });
