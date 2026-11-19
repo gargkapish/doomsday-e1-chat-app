@@ -7,9 +7,7 @@ import userRoutes from "./src/routes/users.js";
 import conversationRoutes from "./src/routes/conversations.js";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-
-
-
+import jwt from "jsonwebtoken";
 
 const app = express();
 app.use(express.json());
@@ -23,9 +21,26 @@ app.get("/health", (req, res) => res.json({ status: "ok" }));
 const server = createServer(app);
 const io = new Server(server);
 
+io.engine.use(cookieParser());
+
+io.use((socket, next) => {
+  const token = socket.request.cookies.token;
+  if (!token) {
+    return next(new Error("Not logged in"));
+  }
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = payload.userId;
+    next();
+  } catch {
+    next(new Error("Session expired, please log in again"));
+  }
+});
+
+
 io.on("connection", (socket) => {
-  console.log("socket connected", socket.id);
-  socket.on("disconnect", () => console.log("socket disconnected", socket.id));
+  console.log("socket connected", socket.userId, socket.id);
+  socket.on("disconnect", () => console.log("socket disconnected", socket.userId, socket.id));
 });
 
 
